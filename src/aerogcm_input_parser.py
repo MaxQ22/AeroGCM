@@ -31,36 +31,48 @@ class AirportInputParser:
     def parseInput(self, input_text):
         """
         Parses the input and returns a list of AirportPair objects.
-        Each object contains start_code, end_code, startcoord, endcoord, and linestyle.
-        Supports multiple destinations per input in the format MUC-TPE/SIN.
+        Supports concatenated legs (e.g., LAX-EWR-MUC), multi-destination options (e.g., LAX-EWR/ORD-MUC),
+        and multiple starting points (e.g., LAX/SFO-MUC).
         """
-        pairs = [pair.strip() for pair in input_text.split(',') if '-' in pair]
+        # Split by commas to handle multiple routes
+        routes = [route.strip() for route in input_text.split(',') if '-' in route]
         parsed_pairs = []
 
-        # Iterate over each ICAO/IATA pair
-        for pair in pairs:
+        # Iterate over each route (e.g., LAX-EWR/ORD-MUC or LAX/SFO-MUC)
+        for route in routes:
             try:
-                start_code, destinations = pair.split('-')
-                start_code = start_code.strip().upper()
+                # Split by '-' to handle legs in series (LAX-EWR-MUC)
+                legs = [leg.strip() for leg in route.split('-')]
 
-                # Split multiple destinations separated by '/'
-                destination_codes = [dest.strip().upper() for dest in destinations.split('/')]
+                # First leg can have multiple starting airports, split by '/'
+                start_codes = [start.strip().upper() for start in legs[0].split('/')]
 
-                # Retrieve start airport coordinates
-                start_coord = self.get_airport_info(start_code)
+                # Iterate over the remaining legs in the series
+                for i in range(1, len(legs)):
+                    # Split by '/' to handle multiple destination options at each step
+                    end_codes = [end.strip().upper() for end in legs[i].split('/')]
 
-                if start_coord:
-                    # Iterate over each destination and create an AirportPair object
-                    for end_code in destination_codes:
-                        end_coord = self.get_airport_info(end_code)
+                    # Retrieve coordinates for each start airport
+                    for start_code in start_codes:
+                        start_coord = self.get_airport_info(start_code)
 
-                        if end_coord:
-                            parsed_pairs.append(AirportPair(start_code, end_code, start_coord, end_coord))
+                        if start_coord:
+                            # Iterate over each destination option and create AirportPair objects
+                            for end_code in end_codes:
+                                end_coord = self.get_airport_info(end_code)
+
+                                if end_coord:
+                                    parsed_pairs.append(AirportPair(start_code, end_code, start_coord, end_coord))
+                                else:
+                                    print(f"Invalid destination code: {end_code}")
                         else:
-                            print(f"Invalid destination code: {end_code}")
-                else:
-                    print(f"Invalid start code: {start_code}")
+                            print(f"Invalid start code: {start_code}")
+
+                    # Set the current end_codes as the new start_codes for the next leg
+                    start_codes = end_codes  # Move to the destinations for the next leg
             except ValueError:
-                print(f"Invalid input format: {pair}")
+                print(f"Invalid input format: {route}")
 
         return parsed_pairs
+
+
