@@ -129,19 +129,8 @@ class MainLayout(BoxLayout):
             lon_points.append(np.degrees(np.arctan2(y, x)))
 
         return lat_points, lon_points
-    def update_map(self, instance):
-        """
-        Updates the map by drawing great circles based on the parsed ICAO/IATA pairs
-        and adjusts the map boundaries to fit all great circles.
-        """
-        # Get the parsed ICAO/IATA pairs from the input
-        input_text = self.icao_input.text.strip()
-        parsed_pairs = self.parser.parseInput(input_text)
-
-        # If no valid pairs, skip updating
-        if not parsed_pairs:
-            return
-        
+    
+    def calc_bounding_box(self, parsed_pairs):
         # Initialize lists to store latitudes and longitudes for bounding box calculation
         all_lats = []
         all_lons = []
@@ -158,8 +147,7 @@ class MainLayout(BoxLayout):
             # Sample points along the great circle
             start = (pair.startcoord.lat, pair.startcoord.lon)
             end = (pair.endcoord.lat, pair.endcoord.lon)
-            num_points = 500  # Increase number of points for smoother curves
-            lats, lons = self.sample_great_circle(start, end, num_points)
+            lats, lons = self.sample_great_circle(start, end, 100)
 
             # Add the sampled latitudes and longitudes to the list for bounds calculation
             all_lats.extend(lats)
@@ -177,25 +165,46 @@ class MainLayout(BoxLayout):
         min_lon = max(min(all_lons) - 5, -180)
         max_lon = min(max(all_lons) + 5, 180)
 
-        # Clear the map and reset the map view with new bounds
-        self.map_ax.clear()
-        self.m = Basemap(projection='mill',
-                        llcrnrlat=min_lat, urcrnrlat=max_lat,
-                        llcrnrlon=min_lon, urcrnrlon=max_lon,
-                        resolution='c', ax=self.map_ax)
-        self.m.drawcoastlines()
-
-        # Plot the great circles again after setting the new boundaries
+        return min_lat, max_lat, min_lon, max_lon
+    
+    def plot_great_circles(self, parsed_pairs):
         for pair in parsed_pairs:
             # Sample points along the great circle
             lats, lons = self.sample_great_circle((pair.startcoord.lat, pair.startcoord.lon), 
-                                                (pair.endcoord.lat, pair.endcoord.lon), num_points)
+                                                (pair.endcoord.lat, pair.endcoord.lon), 500)
 
             # Convert latitude and longitude to map projection coordinates
             x, y = self.m(lons, lats)
 
             # Plot the great circle
             self.m.plot(x, y, linewidth=2, color=pair.linestyle)
+
+
+    def update_map(self, instance):
+        """
+        Updates the map by drawing great circles based on the parsed ICAO/IATA pairs
+        and adjusts the map boundaries to fit all great circles.
+        """
+        # Get the parsed ICAO/IATA pairs from the input
+        input_text = self.icao_input.text.strip()
+        parsed_pairs = self.parser.parseInput(input_text)
+
+        # If no valid pairs, skip updating
+        if not parsed_pairs:
+            return
+
+        min_lat, max_lat, min_lon, max_lon = self.calc_bounding_box(parsed_pairs)
+
+        # Clear the map and reset the map view with new bounds
+        self.map_ax.clear()
+        self.m = Basemap(projection='mill',
+                        llcrnrlat=min_lat, urcrnrlat=max_lat,
+                        llcrnrlon=min_lon, urcrnrlon=max_lon,
+                        resolution='l', ax=self.map_ax)
+        self.m.drawcoastlines()
+
+        # Plot the great circles again after setting the new boundaries
+        self.plot_great_circles(parsed_pairs)
 
         # Refresh the map with the new great circles
         self.map_canvas.draw()
