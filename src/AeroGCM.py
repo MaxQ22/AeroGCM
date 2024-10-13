@@ -129,7 +129,6 @@ class MainLayout(BoxLayout):
             lon_points.append(np.degrees(np.arctan2(y, x)))
 
         return lat_points, lon_points
-
     def update_map(self, instance):
         """
         Updates the map by drawing great circles based on the parsed ICAO/IATA pairs
@@ -152,24 +151,25 @@ class MainLayout(BoxLayout):
         
         # Initialize the world map again
         self.m = Basemap(projection='mill', llcrnrlat=-60, urcrnrlat=90,
-                         llcrnrlon=-180, urcrnrlon=180, resolution='c', ax=self.map_ax)
+                        llcrnrlon=-180, urcrnrlon=180, resolution='c', ax=self.map_ax)
 
-        # Iterate over parsed pairs and draw great circles
+        # Iterate over parsed pairs and draw great circles manually
         for pair in parsed_pairs:
             # Sample points along the great circle
             start = (pair.startcoord.lat, pair.startcoord.lon)
             end = (pair.endcoord.lat, pair.endcoord.lon)
-            num_points = 100  # Adjust as needed for smoother curves
+            num_points = 500  # Increase number of points for smoother curves
             lats, lons = self.sample_great_circle(start, end, num_points)
 
             # Add the sampled latitudes and longitudes to the list for bounds calculation
             all_lats.extend(lats)
             all_lons.extend(lons)
 
-            # Draw the great circle on the map
-            self.m.drawgreatcircle(pair.startcoord.lon, pair.startcoord.lat, 
-                                   pair.endcoord.lon, pair.endcoord.lat,
-                                   linewidth=2, color=pair.linestyle)
+            # Convert latitude and longitude to map projection coordinates
+            x, y = self.m(lons, lats)
+
+            # Plot the great circle on the map using the projected coordinates
+            self.m.plot(x, y, linewidth=2, color=pair.linestyle)
 
         # Determine the bounds of the great circle paths with padding
         min_lat = max(min(all_lats) - 5, -90)
@@ -180,25 +180,32 @@ class MainLayout(BoxLayout):
         # Clear the map and reset the map view with new bounds
         self.map_ax.clear()
         self.m = Basemap(projection='mill',
-                         llcrnrlat=min_lat, urcrnrlat=max_lat,
-                         llcrnrlon=min_lon, urcrnrlon=max_lon,
-                         resolution='c', ax=self.map_ax)
+                        llcrnrlat=min_lat, urcrnrlat=max_lat,
+                        llcrnrlon=min_lon, urcrnrlon=max_lon,
+                        resolution='c', ax=self.map_ax)
         self.m.drawcoastlines()
 
-        # Draw the great circles after setting the new boundaries
+        # Plot the great circles again after setting the new boundaries
         for pair in parsed_pairs:
-            self.m.drawgreatcircle(pair.startcoord.lon, pair.startcoord.lat, 
-                                   pair.endcoord.lon, pair.endcoord.lat,
-                                   linewidth=2, color=pair.linestyle)
+            # Sample points along the great circle
+            lats, lons = self.sample_great_circle((pair.startcoord.lat, pair.startcoord.lon), 
+                                                (pair.endcoord.lat, pair.endcoord.lon), num_points)
+
+            # Convert latitude and longitude to map projection coordinates
+            x, y = self.m(lons, lats)
+
+            # Plot the great circle
+            self.m.plot(x, y, linewidth=2, color=pair.linestyle)
 
         # Refresh the map with the new great circles
         self.map_canvas.draw()
 
+
 # Main Kivy App
-class GreatCircleApp(App):
+class AeroGCMApp(App):
     def build(self):
         return MainLayout()
 
 # Run the application
 if __name__ == "__main__":
-    GreatCircleApp().run()
+    AeroGCMApp().run()
