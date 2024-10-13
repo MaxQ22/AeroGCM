@@ -1,0 +1,16 @@
+name: aerogcm  # Change the environment name as needed
+channels:
+  - defaults
+  - conda-forge  # Required for some libraries like kivy and cartopy
+dependencies:
+  - python
+  - pip
+  - kivy
+  - pip:
+      - kivy-garden  # Required for garden-based widgets like the matplotlib integration
+      - kivy-garden.matplotlib
+      - airportsdata
+      - matplotlib
+      - cartopy
+      - basemap
+      - numpy
