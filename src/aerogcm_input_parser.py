@@ -32,6 +32,7 @@ class AirportInputParser:
         """
         Parses the input and returns a list of AirportPair objects.
         Each object contains start_code, end_code, startcoord, endcoord, and linestyle.
+        Supports multiple destinations per input in the format MUC-TPE/SIN.
         """
         pairs = [pair.strip() for pair in input_text.split(',') if '-' in pair]
         parsed_pairs = []
@@ -39,22 +40,26 @@ class AirportInputParser:
         # Iterate over each ICAO/IATA pair
         for pair in pairs:
             try:
-                start_code, end_code = pair.split('-')
+                start_code, destinations = pair.split('-')
                 start_code = start_code.strip().upper()
-                end_code = end_code.strip().upper()
 
-                # Retrieve coordinates from either ICAO or IATA dataset
+                # Split multiple destinations separated by '/'
+                destination_codes = [dest.strip().upper() for dest in destinations.split('/')]
+
+                # Retrieve start airport coordinates
                 start_coord = self.get_airport_info(start_code)
-                end_coord = self.get_airport_info(end_code)
 
-                if start_coord and end_coord:
-                    # Create an AirportPair object and append it to the list
-                    parsed_pairs.append(AirportPair(start_code, end_code, start_coord, end_coord))
+                if start_coord:
+                    # Iterate over each destination and create an AirportPair object
+                    for end_code in destination_codes:
+                        end_coord = self.get_airport_info(end_code)
+
+                        if end_coord:
+                            parsed_pairs.append(AirportPair(start_code, end_code, start_coord, end_coord))
+                        else:
+                            print(f"Invalid destination code: {end_code}")
                 else:
-                    if not start_coord:
-                        print(f"Invalid code: {start_code}")
-                    if not end_coord:
-                        print(f"Invalid code: {end_code}")
+                    print(f"Invalid start code: {start_code}")
             except ValueError:
                 print(f"Invalid input format: {pair}")
 
