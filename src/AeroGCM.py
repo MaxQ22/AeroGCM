@@ -79,11 +79,21 @@ class MainLayout(BoxLayout):
 
         # Add label for the switch
         switch_label_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
-        switch_label_layout.add_widget(Label(text="Airport Labels Off"))
+        switch_label_layout.add_widget(Label(text="Airport Labels"))
         switch_label_layout.add_widget(self.label_toggle_switch)
-        switch_label_layout.add_widget(Label(text="Airport Labels On"))
 
         right_layout.add_widget(switch_label_layout)
+
+        # Add the On/Off switch to toggle country lines labels
+        self.country_lines_toggle_switch = Switch(active=False)  # Default is 'off'
+        self.country_lines_toggle_switch.bind(active=self.on_country_lines_toggle)  # Bind switch to toggle labels
+
+        # Add label for the switch
+        switch_country_lines_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
+        switch_country_lines_layout.add_widget(Label(text="Country Lines"))
+        switch_country_lines_layout.add_widget(self.country_lines_toggle_switch)
+
+        right_layout.add_widget(switch_country_lines_layout)
 
         # Scrollable Text input field for ICAO/IATA code pairs
         scroll_view = ScrollView(size_hint=(1, 1))
@@ -112,12 +122,23 @@ class MainLayout(BoxLayout):
         # Default: Show labels (switch default to 'on')
         self.show_labels = True
 
+        #Default: Show country lines (switch default to 'off')
+        self.show_country_lines = False
+
     def on_label_toggle(self, instance, value):
         """
         Toggle airport labels based on the switch value.
         True means on, False means off.
         """
         self.show_labels = value
+        self.update_map(None)  # Update map when switch is changed
+    
+    def on_country_lines_toggle(self, instance, value):
+        """
+        Toggle airport labels based on the switch value.
+        True means on, False means off.
+        """
+        self.show_country_lines = value
         self.update_map(None)  # Update map when switch is changed
 
     def sample_great_circle(self, start, end, num_points=100):
@@ -239,7 +260,22 @@ class MainLayout(BoxLayout):
                         llcrnrlat=min_lat, urcrnrlat=max_lat,
                         llcrnrlon=min_lon, urcrnrlon=max_lon,
                         resolution='l', ax=self.map_ax)
-        self.m.drawcoastlines()
+        # Set the figure background color to black
+        self.map_fig.patch.set_facecolor('black')
+
+        # Draw the map boundary with black fill
+        self.m.drawmapboundary(fill_color='black')
+
+        # Draw coastlines with white color
+        self.m.drawcoastlines(color='white')
+
+        # Fill continents and lakes with colors
+        self.m.fillcontinents(color='gray', lake_color='black')
+
+        #Draw the Country Lines, if desired
+        if self.show_country_lines == True:
+            # Optionally draw countries
+            self.m.drawcountries(color='lightgray')
 
         # Plot the great circles again after setting the new boundaries
         self.plot_great_circles(parsed_pairs)
