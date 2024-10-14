@@ -5,6 +5,7 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.switch import Switch
 from kivy_garden.matplotlib import FigureCanvasKivyAgg
 from kivy.core.window import Window
 
@@ -33,22 +34,22 @@ Window.size = (1200, 800)
 class MainLayout(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.orientation = 'horizontal'
-        self.padding = 10
-        self.spacing = 10
+        self.orientation = 'horizontal'  # Layout is now horizontal to fit the map and input sections
 
         # Initialize the Input Parser
         self.parser = AirportInputParser()
-        
+
         # Left side: World map (using Matplotlib with Basemap)
         self.map_fig, self.map_ax = plt.subplots()
         self.map_canvas = FigureCanvasKivyAgg(self.map_fig)
-        self.add_widget(self.map_canvas)
-        
+
         # Initialize the world map
         self.m = Basemap(projection='mill', llcrnrlat=-60, urcrnrlat=90,
                          llcrnrlon=-180, urcrnrlon=180, resolution='c', ax=self.map_ax)
         self.m.drawcoastlines()
+
+        # Add the map canvas
+        self.add_widget(self.map_canvas)
 
         # Right side: Input section for ICAO/IATA code pairs
         right_layout = BoxLayout(orientation='vertical', size_hint=(0.4, 1), padding=10, spacing=10)
@@ -72,6 +73,18 @@ class MainLayout(BoxLayout):
             height=30,
             color=(0.9, 0.9, 0.9, 1)))
 
+        # Add the On/Off switch to toggle airport labels
+        self.label_toggle_switch = Switch(active=True)  # Default is 'on'
+        self.label_toggle_switch.bind(active=self.on_label_toggle)  # Bind switch to toggle labels
+
+        # Add label for the switch
+        switch_label_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
+        switch_label_layout.add_widget(Label(text="Airport Labels Off"))
+        switch_label_layout.add_widget(self.label_toggle_switch)
+        switch_label_layout.add_widget(Label(text="Airport Labels On"))
+
+        right_layout.add_widget(switch_label_layout)
+
         # Scrollable Text input field for ICAO/IATA code pairs
         scroll_view = ScrollView(size_hint=(1, 1))
         self.icao_input = TextInput(
@@ -84,7 +97,7 @@ class MainLayout(BoxLayout):
             foreground_color=(1, 1, 1, 1))
         scroll_view.add_widget(self.icao_input)
         right_layout.add_widget(scroll_view)
-        
+
         # Button to plot the great circles
         self.map_button = Button(
             text="Map Routes",
@@ -95,6 +108,17 @@ class MainLayout(BoxLayout):
             bold=True)
         self.map_button.bind(on_press=self.update_map)
         right_layout.add_widget(self.map_button)
+
+        # Default: Show labels (switch default to 'on')
+        self.show_labels = True
+
+    def on_label_toggle(self, instance, value):
+        """
+        Toggle airport labels based on the switch value.
+        True means on, False means off.
+        """
+        self.show_labels = value
+        self.update_map(None)  # Update map when switch is changed
 
     def sample_great_circle(self, start, end, num_points=100):
         """
@@ -167,6 +191,21 @@ class MainLayout(BoxLayout):
 
         return min_lat, max_lat, min_lon, max_lon
     
+    def plot_airports(self, parsed_pairs):
+        if self.show_labels:
+            for pair in parsed_pairs:
+            # Plot airport labels if the switch is on (self.show_labels is True)
+                # Get airport coordinates
+                start_coord = self.m(pair.startcoord.lon, pair.startcoord.lat)
+                end_coord = self.m(pair.endcoord.lon, pair.endcoord.lat)
+
+                # Add labels next to the airports
+                self.map_ax.text(start_coord[0], start_coord[1], pair.start_code, fontsize=10, ha='right', color='blue')
+                self.map_ax.text(end_coord[0], end_coord[1], pair.end_code, fontsize=10, ha='left', color='blue')
+                self.map_ax.plot(start_coord[0], start_coord[1], 'o', color='blue', markersize=5)  
+                self.map_ax.plot(end_coord[0], end_coord[1], 'o', color='blue', markersize=5)  
+
+    
     def plot_great_circles(self, parsed_pairs):
         for pair in parsed_pairs:
             # Sample points along the great circle
@@ -178,7 +217,6 @@ class MainLayout(BoxLayout):
 
             # Plot the great circle
             self.m.plot(x, y, linewidth=2, color=pair.linestyle)
-
 
     def update_map(self, instance):
         """
@@ -205,6 +243,9 @@ class MainLayout(BoxLayout):
 
         # Plot the great circles again after setting the new boundaries
         self.plot_great_circles(parsed_pairs)
+
+        # Plot the airports
+        self.plot_airports(parsed_pairs)
 
         # Refresh the map with the new great circles
         self.map_canvas.draw()
