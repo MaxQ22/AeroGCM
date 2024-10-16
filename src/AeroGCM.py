@@ -8,6 +8,8 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.switch import Switch
 from kivy_garden.matplotlib import FigureCanvasKivyAgg
 from kivy.core.window import Window
+from kivy.uix.dropdown import DropDown
+from kivy.uix.accordion import Accordion, AccordionItem
 
 # Import Matplotlib to draw the map
 import matplotlib.pyplot as plt
@@ -34,19 +36,65 @@ Window.size = (1200, 800)
 class MainLayout(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.orientation = 'horizontal'  # Layout is now horizontal to fit the map and input sections
+        self.orientation = 'horizontal'  # Layout is now horizontal to fit the map and settings sections
 
         # Initialize the Input Parser
         self.parser = AirportInputParser()
 
-        # Left side: World map (using Matplotlib with Basemap)
+        # Left side: Settings Menu using Accordion
+        settings_layout = BoxLayout(orientation='vertical', size_hint=(0.2, 1), padding=10, spacing=10)
+        self.add_widget(settings_layout)
+
+        # Accordion for expandable sections
+        settings_accordion = Accordion(orientation='vertical')
+
+        # Create Map Style section
+        map_style_item = AccordionItem(title='Map Style',orientation = 'vertical')
+        map_style_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        map_style_item.add_widget(map_style_layout)
+
+         # Add the On/Off switch to toggle airport labels
+        self.airport_label_toggle_switch = Switch(active=True)  # Default is 'on'
+        self.airport_label_toggle_switch.bind(active=self.on_airport_label_toggle)  # Bind switch to toggle labels
+        # Add label and switch to toggle airport labels
+        map_style_layout.add_widget(Label(text="Airport Identifiers"))
+        map_style_layout.add_widget(self.airport_label_toggle_switch)      
+
+        # Add the On/Off switch to toggle country lines
+        self.country_lines_toggle_switch = Switch(active=False)  # Default is 'off'
+        self.country_lines_toggle_switch.bind(active=self.on_country_lines_toggle)  # Bind switch to toggle labels
+        # Add label and switch to toggle country lines
+        map_style_layout.add_widget(Label(text="Show Country Lines"))
+        map_style_layout.add_widget(self.country_lines_toggle_switch)
+
+        # Create File section
+        file_item = AccordionItem(title='File')
+        file_item.add_widget(Label(text="Test"))
+
+        #Add all items to the accordion
+        settings_accordion.add_widget(file_item)
+        settings_accordion.add_widget(map_style_item)
+        # Add accordion to the settings layout
+        settings_layout.add_widget(settings_accordion)
+
+        # Right side: World map (using Matplotlib with Basemap)
         self.map_fig, self.map_ax = plt.subplots()
         self.map_canvas = FigureCanvasKivyAgg(self.map_fig)
 
         # Initialize the world map
         self.m = Basemap(projection='mill', llcrnrlat=-60, urcrnrlat=90,
-                         llcrnrlon=-180, urcrnrlon=180, resolution='c', ax=self.map_ax)
-        self.m.drawcoastlines()
+                        llcrnrlon=-180, urcrnrlon=180, resolution='c', ax=self.map_ax)
+          # Set the figure background color to black
+        self.map_fig.patch.set_facecolor('black')
+
+        # Draw the map boundary with black fill
+        self.m.drawmapboundary(fill_color='black')
+
+        # Draw coastlines with white color
+        self.m.drawcoastlines(color='white')
+
+        # Fill continents and lakes with colors
+        self.m.fillcontinents(color='gray', lake_color='black')
 
         # Add the map canvas
         self.add_widget(self.map_canvas)
@@ -72,28 +120,6 @@ class MainLayout(BoxLayout):
             size_hint_y=None,
             height=30,
             color=(0.9, 0.9, 0.9, 1)))
-
-        # Add the On/Off switch to toggle airport labels
-        self.label_toggle_switch = Switch(active=True)  # Default is 'on'
-        self.label_toggle_switch.bind(active=self.on_label_toggle)  # Bind switch to toggle labels
-
-        # Add label for the switch
-        switch_label_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
-        switch_label_layout.add_widget(Label(text="Airport Labels"))
-        switch_label_layout.add_widget(self.label_toggle_switch)
-
-        right_layout.add_widget(switch_label_layout)
-
-        # Add the On/Off switch to toggle country lines labels
-        self.country_lines_toggle_switch = Switch(active=False)  # Default is 'off'
-        self.country_lines_toggle_switch.bind(active=self.on_country_lines_toggle)  # Bind switch to toggle labels
-
-        # Add label for the switch
-        switch_country_lines_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
-        switch_country_lines_layout.add_widget(Label(text="Country Lines"))
-        switch_country_lines_layout.add_widget(self.country_lines_toggle_switch)
-
-        right_layout.add_widget(switch_country_lines_layout)
 
         # Scrollable Text input field for ICAO/IATA code pairs
         scroll_view = ScrollView(size_hint=(1, 1))
@@ -122,10 +148,11 @@ class MainLayout(BoxLayout):
         # Default: Show labels (switch default to 'on')
         self.show_labels = True
 
-        #Default: Show country lines (switch default to 'off')
+        # Default: Show country lines (switch default to 'off')
         self.show_country_lines = False
 
-    def on_label_toggle(self, instance, value):
+
+    def on_airport_label_toggle(self, instance, value):
         """
         Toggle airport labels based on the switch value.
         True means on, False means off.
