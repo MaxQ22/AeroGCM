@@ -69,7 +69,16 @@ class MainLayout(BoxLayout):
 
         # Create File section
         file_item = AccordionItem(title='File')
-        file_item.add_widget(Label(text="Test"))
+        # Exit Button
+        self.exit_button = Button(
+            text="Exit",
+            size_hint=(1,None),
+            height=50,
+            background_color=(0.3, 0.5, 0.7, 1),
+            color=(1, 1, 1, 1),
+            bold=True)
+        self.exit_button.bind(on_press=self.exit)
+        file_item.add_widget(self.exit_button)
 
         #Add all items to the accordion
         settings_accordion.add_widget(file_item)
@@ -84,7 +93,7 @@ class MainLayout(BoxLayout):
         # Initialize the world map
         self.m = Basemap(projection='mill', llcrnrlat=-60, urcrnrlat=90,
                         llcrnrlon=-180, urcrnrlon=180, resolution='c', ax=self.map_ax)
-          # Set the figure background color to black
+        # Set the figure background color to black
         self.map_fig.patch.set_facecolor('black')
 
         # Draw the map boundary with black fill
@@ -151,6 +160,11 @@ class MainLayout(BoxLayout):
         # Default: Show country lines (switch default to 'off')
         self.show_country_lines = False
 
+    def exit(self, *args):
+        """
+        Function to close the Kivy application.
+        """
+        App.get_running_app().stop()  # Stop the app
 
     def on_airport_label_toggle(self, instance, value):
         """
