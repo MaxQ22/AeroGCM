@@ -6,9 +6,19 @@ class Coordinate:
 
 # Object to represent the parsed data for each ICAO/IATA pair before plotting
 class AirportPair:
-    def __init__(self, start_code, end_code, startcoord, endcoord, linestyle='blue'):
+    def __init__(self, start_code, end_code, startcoord, endcoord, linestyle='line', color=(0.3, 0.4, 0.5)):
         self.start_code = start_code
         self.end_code = end_code
         self.startcoord = startcoord
         self.endcoord = endcoord
         self.linestyle = linestyle
+        self.color = color
+
+class DistanceRing:
+    def __init__(self,start_code,startcoord , distance, linestyle='line', color=(0.3, 0.4, 0.5)):
+        self.start_code = start_code
+        self.startcoord = startcoord
+        self.linestyle = linestyle
+        self.color = color
+        self.distance = distance
+

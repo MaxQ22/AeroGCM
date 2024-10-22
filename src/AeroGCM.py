@@ -8,8 +8,9 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.switch import Switch
 from kivy_garden.matplotlib import FigureCanvasKivyAgg
 from kivy.core.window import Window
-from kivy.uix.dropdown import DropDown
 from kivy.uix.accordion import Accordion, AccordionItem
+import numpy as np
+from geopy.distance import geodesic
 
 # Import Matplotlib to draw the map
 import matplotlib.pyplot as plt
@@ -217,6 +218,9 @@ class MainLayout(BoxLayout):
         return lat_points, lon_points
     
     def calc_bounding_box(self, parsed_pairs):
+        """
+        Function calculates the bounding box of all the great circles, to zoom into the section of the map, that is showing the mapped great circles
+        """
         # Initialize lists to store latitudes and longitudes for bounding box calculation
         all_lats = []
         all_lons = []
@@ -243,7 +247,7 @@ class MainLayout(BoxLayout):
             x, y = self.m(lons, lats)
 
             # Plot the great circle on the map using the projected coordinates
-            self.m.plot(x, y, linewidth=2, color=pair.linestyle)
+            self.m.plot(x, y, linewidth=2, color=pair.color)
 
         # Determine the bounds of the great circle paths with padding
         min_lat = max(min(all_lats) - 5, -90)
@@ -254,6 +258,9 @@ class MainLayout(BoxLayout):
         return min_lat, max_lat, min_lon, max_lon
     
     def plot_airports(self, parsed_pairs):
+        """
+        Function plots the airport labels and a dot on every airport
+        """
         if self.show_labels:
             for pair in parsed_pairs:
             # Plot airport labels if the switch is on (self.show_labels is True)
@@ -262,13 +269,49 @@ class MainLayout(BoxLayout):
                 end_coord = self.m(pair.endcoord.lon, pair.endcoord.lat)
 
                 # Add labels next to the airports
-                self.map_ax.text(start_coord[0], start_coord[1], pair.start_code, fontsize=10, ha='right', color='blue')
-                self.map_ax.text(end_coord[0], end_coord[1], pair.end_code, fontsize=10, ha='left', color='blue')
-                self.map_ax.plot(start_coord[0], start_coord[1], 'o', color='blue', markersize=5)  
-                self.map_ax.plot(end_coord[0], end_coord[1], 'o', color='blue', markersize=5)  
+                self.map_ax.text(start_coord[0], start_coord[1], pair.start_code, fontsize=10, ha='right', color=pair.color)
+                self.map_ax.text(end_coord[0], end_coord[1], pair.end_code, fontsize=10, ha='left', color=pair.color)
+                self.map_ax.plot(start_coord[0], start_coord[1], 'o', color=pair.color, markersize=5)  
+                self.map_ax.plot(end_coord[0], end_coord[1], 'o', color=pair.color, markersize=5)  
 
-    
+    def plot_distance_rings(self, distance_rings):
+        """
+        Plots the specified distance rings on the Basemap, calculating points along the ring using great-circle distances.
+        
+        Parameters:
+        distance_rings (list): List of DistanceRing objects to be plotted.
+        """
+        for ring in distance_rings:
+            try:
+                lat = ring.startcoord.lat 
+                lon = ring.startcoord.lon 
+                distance_km = ring.distance  # Already in kilometers
+
+                # Generate points every degree around the circle (360 degrees)
+                num_points = 360
+                circle_points = []
+
+                for angle in np.linspace(0, 360, num_points):
+                    # Use geopy's geodesic method to calculate the destination point from the center
+                    destination = geodesic(kilometers=distance_km).destination((lat, lon), angle)
+                    circle_points.append((destination.latitude, destination.longitude))
+
+                # Extract lats and lons separately for plotting
+                circle_lats, circle_lons = zip(*circle_points)
+
+                # Project these lat/lon points to map coordinates
+                map_x, map_y = self.m(circle_lons, circle_lats)
+
+                # Plot the circle using the specified ring color and line style
+                self.m.plot(map_x, map_y, linewidth=1.5)
+
+            except Exception as e:
+                print(f"Failed to plot ring for {ring.start_code}: {e}")
+                
     def plot_great_circles(self, parsed_pairs):
+        """
+        Function plots the great circles onto the map
+        """
         for pair in parsed_pairs:
             # Sample points along the great circle
             lats, lons = self.sample_great_circle((pair.startcoord.lat, pair.startcoord.lon), 
@@ -278,7 +321,7 @@ class MainLayout(BoxLayout):
             x, y = self.m(lons, lats)
 
             # Plot the great circle
-            self.m.plot(x, y, linewidth=2, color=pair.linestyle)
+            self.m.plot(x, y, linewidth=2, color=pair.color)
 
     def update_map(self, instance):
         """
@@ -287,7 +330,7 @@ class MainLayout(BoxLayout):
         """
         # Get the parsed ICAO/IATA pairs from the input
         input_text = self.icao_input.text.strip()
-        parsed_pairs = self.parser.parseInput(input_text)
+        parsed_pairs, parsed_rings = self.parser.parseInput(input_text)
 
         # If no valid pairs, skip updating
         if not parsed_pairs:
@@ -320,6 +363,8 @@ class MainLayout(BoxLayout):
 
         # Plot the great circles again after setting the new boundaries
         self.plot_great_circles(parsed_pairs)
+
+        self.plot_distance_rings(parsed_rings)
 
         # Plot the airports
         self.plot_airports(parsed_pairs)
