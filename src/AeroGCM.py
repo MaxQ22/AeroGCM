@@ -217,13 +217,13 @@ class MainLayout(BoxLayout):
 
         return lat_points, lon_points
     
-    def calc_bounding_box(self, parsed_pairs):
+    def calc_bounding_box(self, parsed_pairs, all_lats, all_lons):
         """
         Function calculates the bounding box of all the great circles, to zoom into the section of the map, that is showing the mapped great circles
         """
-        # Initialize lists to store latitudes and longitudes for bounding box calculation
-        all_lats = []
-        all_lons = []
+        # Initialize lists to store latitudes and longitudes for bounding box calculation by taking the values of the distance rings
+        all_lats = all_lats
+        all_lons = all_lons
 
         # Clear the map
         self.map_ax.clear()
@@ -242,12 +242,6 @@ class MainLayout(BoxLayout):
             # Add the sampled latitudes and longitudes to the list for bounds calculation
             all_lats.extend(lats)
             all_lons.extend(lons)
-
-            # Convert latitude and longitude to map projection coordinates
-            x, y = self.m(lons, lats)
-
-            # Plot the great circle on the map using the projected coordinates
-            self.m.plot(x, y, linewidth=2, color=pair.color)
 
         # Determine the bounds of the great circle paths with padding
         min_lat = max(min(all_lats) - 5, -90)
@@ -281,6 +275,9 @@ class MainLayout(BoxLayout):
         Parameters:
         distance_rings (list): List of DistanceRing objects to be plotted.
         """
+
+        all_lats = []
+        all_lons = []
         for ring in distance_rings:
             try:
                 lat = ring.startcoord.lat 
@@ -307,6 +304,11 @@ class MainLayout(BoxLayout):
 
             except Exception as e:
                 print(f"Failed to plot ring for {ring.start_code}: {e}")
+
+            all_lats.extend(circle_lats)
+            all_lons.extend(circle_lons)
+        
+        return all_lats, all_lons
                 
     def plot_great_circles(self, parsed_pairs):
         """
@@ -333,10 +335,14 @@ class MainLayout(BoxLayout):
         parsed_pairs, parsed_rings = self.parser.parseInput(input_text)
 
         # If no valid pairs, skip updating
-        if not parsed_pairs:
+        if not (parsed_pairs or parsed_rings):
             return
 
-        min_lat, max_lat, min_lon, max_lon = self.calc_bounding_box(parsed_pairs)
+        #Use the plot distance ring function, to calculate the lats and lons of the distance ring for bounding box calculation
+        all_lats, all_lons = self.plot_distance_rings(parsed_rings)
+
+        #Calculate the bounding box, in which all the distance rings and great circles are contained to zoom the map
+        min_lat, max_lat, min_lon, max_lon = self.calc_bounding_box(parsed_pairs, all_lats, all_lons)
 
         # Clear the map and reset the map view with new bounds
         self.map_ax.clear()
@@ -364,7 +370,8 @@ class MainLayout(BoxLayout):
         # Plot the great circles again after setting the new boundaries
         self.plot_great_circles(parsed_pairs)
 
-        self.plot_distance_rings(parsed_rings)
+        #Plot the distance rings around the airport
+        all_lats, all_lons = self.plot_distance_rings(parsed_rings)
 
         # Plot the airports
         self.plot_airports(parsed_pairs)
