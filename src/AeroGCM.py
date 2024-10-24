@@ -251,7 +251,7 @@ class MainLayout(BoxLayout):
 
         return min_lat, max_lat, min_lon, max_lon
     
-    def plot_airports(self, parsed_pairs):
+    def plot_airports(self, parsed_pairs, parsed_rings):
         """
         Function plots the airport labels and a dot on every airport
         """
@@ -266,7 +266,13 @@ class MainLayout(BoxLayout):
                 self.map_ax.text(start_coord[0], start_coord[1], pair.start_code, fontsize=10, ha='right', color=pair.color)
                 self.map_ax.text(end_coord[0], end_coord[1], pair.end_code, fontsize=10, ha='left', color=pair.color)
                 self.map_ax.plot(start_coord[0], start_coord[1], 'o', color=pair.color, markersize=5)  
-                self.map_ax.plot(end_coord[0], end_coord[1], 'o', color=pair.color, markersize=5)  
+                self.map_ax.plot(end_coord[0], end_coord[1], 'o', color=pair.color, markersize=5) 
+
+            #Add the airport labels for the center of the distance rings
+            for ring in parsed_rings: 
+                start_coord = self.m(ring.startcoord.lon, ring.startcoord.lat)
+                self.map_ax.text(start_coord[0], start_coord[1], ring.start_code, fontsize=10, ha='right', color=ring.color)
+                self.map_ax.plot(start_coord[0], start_coord[1], 'o', color=ring.color, markersize=5)  
 
     def plot_distance_rings(self, distance_rings):
         """
@@ -300,7 +306,7 @@ class MainLayout(BoxLayout):
                 map_x, map_y = self.m(circle_lons, circle_lats)
 
                 # Plot the circle using the specified ring color and line style
-                self.m.plot(map_x, map_y, linewidth=1.5)
+                self.m.plot(map_x, map_y, linewidth=1.5,color=ring.color)
 
             except Exception as e:
                 print(f"Failed to plot ring for {ring.start_code}: {e}")
@@ -374,7 +380,7 @@ class MainLayout(BoxLayout):
         all_lats, all_lons = self.plot_distance_rings(parsed_rings)
 
         # Plot the airports
-        self.plot_airports(parsed_pairs)
+        self.plot_airports(parsed_pairs, parsed_rings)
 
         # Refresh the map with the new great circles
         self.map_canvas.draw()
