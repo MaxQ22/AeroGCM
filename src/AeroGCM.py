@@ -274,10 +274,13 @@ class MainLayout(BoxLayout):
                 self.map_ax.text(start_coord[0], start_coord[1], ring.start_code, fontsize=10, ha='right', color=ring.color)
                 self.map_ax.plot(start_coord[0], start_coord[1], 'o', color=ring.color, markersize=5)  
 
+    import numpy as np
+
+
     def plot_distance_rings(self, distance_rings):
         """
-        Plots the specified distance rings on the Basemap, calculating points along the ring using great-circle distances.
-        
+        Plots the specified distance rings on the Basemap without connecting points across the map boundary.
+
         Parameters:
         distance_rings (list): List of DistanceRing objects to be plotted.
         """
@@ -305,20 +308,38 @@ class MainLayout(BoxLayout):
                 # Project these lat/lon points to map coordinates
                 map_x, map_y = self.m(circle_lons, circle_lats)
 
-                # Plot the circle using the specified ring color and line style
-                self.m.plot(map_x, map_y, linewidth=1.5,color=ring.color)
+                # Check for large jumps in both x and y coordinates to detect boundary crossings
+                split_indices = [0]  # Start index for each segment
+                for i in range(1, len(map_x)):
+                    if (abs(map_x[i] - map_x[i - 1]) > self.m.xmax / 2) or (abs(map_y[i] - map_y[i - 1]) > self.m.ymax / 2):
+                        # If a large jump is detected in x or y, add a new segment
+                        split_indices.append(i)
+
+                split_indices.append(len(map_x))  # End of the last segment
+
+                # Plot each segment separately to avoid connecting across boundaries
+                for i in range(len(split_indices) - 1):
+                    start_idx = split_indices[i]
+                    end_idx = split_indices[i + 1]
+                    self.m.plot(map_x[start_idx:end_idx], map_y[start_idx:end_idx], linewidth=1.5, color=ring.color)
 
             except Exception as e:
-                print(f"Failed to plot ring for {ring.start_code}: {e}")
+                print(f"Failed to plot ring for {ring.startcoord}: {e}")
 
             all_lats.extend(circle_lats)
             all_lons.extend(circle_lons)
-        
+
+            #Add the coordinates of the airport of the distance ring, in case the ring is so big, that it does not encompass the destination (eg. 14000km@LAX)
+            all_lats.append(lat)
+            all_lons.append(lon)
+
         return all_lats, all_lons
+
                 
     def plot_great_circles(self, parsed_pairs):
         """
-        Function plots the great circles onto the map
+        Function plots the great circles onto the map without connecting 
+        points across the map boundary in longitude and latitude.
         """
         for pair in parsed_pairs:
             # Sample points along the great circle
@@ -328,8 +349,21 @@ class MainLayout(BoxLayout):
             # Convert latitude and longitude to map projection coordinates
             x, y = self.m(lons, lats)
 
-            # Plot the great circle
-            self.m.plot(x, y, linewidth=2, color=pair.color)
+            # Check for large jumps in both x and y coordinates
+            split_indices = [0]  # Start index for each segment
+            for i in range(1, len(x)):
+                if (abs(x[i] - x[i - 1]) > self.m.xmax / 2) or (abs(y[i] - y[i - 1]) > self.m.ymax / 2): 
+                    # If a large jump is detected in longitude (x) or latitude (y)
+                    split_indices.append(i)  # Start a new segment
+
+            split_indices.append(len(x))  # End of the last segment
+
+            print(split_indices)
+            # Plot each segment separately to avoid connecting across boundaries
+            for i in range(len(split_indices) - 1):
+                start_idx = split_indices[i]
+                end_idx = split_indices[i + 1]
+                self.m.plot(x[start_idx:end_idx], y[start_idx:end_idx], linewidth=2, color=pair.color)
 
     def update_map(self, instance):
         """
@@ -377,7 +411,7 @@ class MainLayout(BoxLayout):
         self.plot_great_circles(parsed_pairs)
 
         #Plot the distance rings around the airport
-        all_lats, all_lons = self.plot_distance_rings(parsed_rings)
+        self.plot_distance_rings(parsed_rings)
 
         # Plot the airports
         self.plot_airports(parsed_pairs, parsed_rings)
