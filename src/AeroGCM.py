@@ -65,8 +65,15 @@ class MainLayout(BoxLayout):
         self.country_lines_toggle_switch = Switch(active=False)  # Default is 'off'
         self.country_lines_toggle_switch.bind(active=self.on_country_lines_toggle)  # Bind switch to toggle labels
         # Add label and switch to toggle country lines
-        map_style_layout.add_widget(Label(text="Show Country Lines"))
+        map_style_layout.add_widget(Label(text="Country Lines"))
         map_style_layout.add_widget(self.country_lines_toggle_switch)
+
+        # Add the On/Off switch to toggle city names
+        self.city_names_toggle_switch = Switch(active=False)  # Default is 'off'
+        self.city_names_toggle_switch.bind(active=self.on_city_names_toggle)  # Bind switch to toggle labels
+        # Add label and switch to toggle country lines
+        map_style_layout.add_widget(Label(text="City Names"))
+        map_style_layout.add_widget(self.city_names_toggle_switch)
 
         # Create File section
         file_item = AccordionItem(title='File')
@@ -75,7 +82,7 @@ class MainLayout(BoxLayout):
             text="Exit",
             size_hint=(1,None),
             height=50,
-            background_color=(0.3, 0.5, 0.7, 1),
+            background_color = (19.6/100, 64.3/100,80.8/100,1),
             color=(1, 1, 1, 1),
             bold=True)
         self.exit_button.bind(on_press=self.exit)
@@ -149,7 +156,7 @@ class MainLayout(BoxLayout):
             text="Map Routes",
             size_hint_y=None,
             height=50,
-            background_color=(0.3, 0.5, 0.7, 1),
+            background_color=(19.6/100, 64.3/100,80.8/100,1),
             color=(1, 1, 1, 1),
             bold=True)
         self.map_button.bind(on_press=self.update_map)
@@ -160,6 +167,9 @@ class MainLayout(BoxLayout):
 
         # Default: Show country lines (switch default to 'off')
         self.show_country_lines = False
+
+        # Default: Show city names (switch default to 'off')
+        self.show_city_names = False
 
     def exit(self, *args):
         """
@@ -181,6 +191,14 @@ class MainLayout(BoxLayout):
         True means on, False means off.
         """
         self.show_country_lines = value
+        self.update_map(None)  # Update map when switch is changed
+    
+    def on_city_names_toggle(self, instance, value):
+        """
+        Toggle city names based on the switch value.
+        True means on, False means off.
+        """
+        self.show_city_names = value
         self.update_map(None)  # Update map when switch is changed
 
     def sample_great_circle(self, start, end, num_points=100):
@@ -255,27 +273,56 @@ class MainLayout(BoxLayout):
         """
         Function plots the airport labels and a dot on every airport
         """
-        if self.show_labels:
-            for pair in parsed_pairs:
+        
+        for pair in parsed_pairs:
             # Plot airport labels if the switch is on (self.show_labels is True)
-                # Get airport coordinates
-                start_coord = self.m(pair.startcoord.lon, pair.startcoord.lat)
-                end_coord = self.m(pair.endcoord.lon, pair.endcoord.lat)
+            # Get airport coordinates
+            start_coord = self.m(pair.startcoord.lon, pair.startcoord.lat)
+            end_coord = self.m(pair.endcoord.lon, pair.endcoord.lat)
 
-                # Add labels next to the airports
-                self.map_ax.text(start_coord[0], start_coord[1], pair.start_code, fontsize=10, ha='right', color=pair.color)
-                self.map_ax.text(end_coord[0], end_coord[1], pair.end_code, fontsize=10, ha='left', color=pair.color)
-                self.map_ax.plot(start_coord[0], start_coord[1], 'o', color=pair.color, markersize=5)  
-                self.map_ax.plot(end_coord[0], end_coord[1], 'o', color=pair.color, markersize=5) 
+            # Add labels next to the airports
+            self.map_ax.text(start_coord[0], start_coord[1], pair.start_code, fontsize=10, ha='right', color=pair.color)
+            self.map_ax.text(end_coord[0], end_coord[1], pair.end_code, fontsize=10, ha='left', color=pair.color)
+            self.map_ax.plot(start_coord[0], start_coord[1], 'o', color=pair.color, markersize=5)  
+            self.map_ax.plot(end_coord[0], end_coord[1], 'o', color=pair.color, markersize=5) 
 
-            #Add the airport labels for the center of the distance rings
-            for ring in parsed_rings: 
-                start_coord = self.m(ring.startcoord.lon, ring.startcoord.lat)
-                self.map_ax.text(start_coord[0], start_coord[1], ring.start_code, fontsize=10, ha='right', color=ring.color)
-                self.map_ax.plot(start_coord[0], start_coord[1], 'o', color=ring.color, markersize=5)  
+        #Add the airport labels for the center of the distance rings
+        for ring in parsed_rings: 
+            start_coord = self.m(ring.startcoord.lon, ring.startcoord.lat)
+            self.map_ax.text(start_coord[0], start_coord[1], ring.start_code, fontsize=10, ha='right', color=ring.color)
+            self.map_ax.plot(start_coord[0], start_coord[1], 'o', color=ring.color, markersize=5)  
 
-    import numpy as np
+    def plot_cities(self):
+        """
+        Plots markers and names of important world cities on the Basemap instance (self.m).
+        """
+        # List of major cities with their coordinates (latitude, longitude) and names
+        major_cities = [
+            {"name": "New York", "lat": 40.7128, "lon": -74.0060},
+            {"name": "London", "lat": 51.5074, "lon": -0.1278},
+            {"name": "Tokyo", "lat": 35.6895, "lon": 139.6917},
+            {"name": "Paris", "lat": 48.8566, "lon": 2.3522},
+            {"name": "Sydney", "lat": -33.8688, "lon": 151.2093},
+            {"name": "Moscow", "lat": 55.7558, "lon": 37.6176},
+            {"name": "Cairo", "lat": 30.0444, "lon": 31.2357},
+            {"name": "Beijing", "lat": 39.9042, "lon": 116.4074},
+            {"name": "Mumbai", "lat": 19.0760, "lon": 72.8777},
+            {"name": "Rio de Janeiro", "lat": -22.9068, "lon": -43.1729}
+        ]
 
+        # Define marker color in RGBA format
+        marker_color = (19.6/100, 64.3/100,80.8/100,1) # Custom color (dark blue-grey)
+
+        # Plot each city on the map
+        for city in major_cities:
+            # Convert city coordinates to map projection
+            x, y = self.m(city["lon"], city["lat"])
+            
+            # Plot a marker for the city
+            self.m.plot(x, y, marker='o', markersize=5, markerfacecolor=marker_color, markeredgewidth=0)
+            
+            # Add the city name next to the marker
+            plt.text(x, y, city["name"], fontsize=10, ha='right', color=marker_color)
 
     def plot_distance_rings(self, distance_rings):
         """
@@ -413,8 +460,15 @@ class MainLayout(BoxLayout):
         #Plot the distance rings around the airport
         self.plot_distance_rings(parsed_rings)
 
-        # Plot the airports
-        self.plot_airports(parsed_pairs, parsed_rings)
+        # Plot the airports, if desired
+        if self.show_labels:
+            #Optionally draw airport names
+            self.plot_airports(parsed_pairs, parsed_rings)
+
+        #Plot the city names, if that is desired
+        if self.show_city_names == True:
+            #Optionally draw city names of some known cities
+            self.plot_cities()
 
         # Refresh the map with the new great circles
         self.map_canvas.draw()

@@ -52,7 +52,7 @@ class AirportInputParser:
         parsed_rings = []  # List for storing DistanceRing objects
 
         # Set color to default color
-        current_color = (0.3, 0.5, 0.7)
+        current_color = (19.6/100, 64.3/100,80.8/100,1)
 
         # Iterate over each token in the input
         for token in tokens:
