@@ -271,27 +271,37 @@ class MainLayout(BoxLayout):
     
     def plot_airports(self, parsed_pairs, parsed_rings):
         """
-        Function plots the airport labels and a dot on every airport
+        Function plots the airport labels and a dot on every airport.
+        Ensures that each airport is plotted only once, even if it appears in multiple lists.
         """
-        
+        # Set to store unique airport codes that have already been plotted
+        plotted_airports = set()
+
+        # Plot airports from parsed_pairs
         for pair in parsed_pairs:
-            # Plot airport labels if the switch is on (self.show_labels is True)
-            # Get airport coordinates
-            start_coord = self.m(pair.startcoord.lon, pair.startcoord.lat)
-            end_coord = self.m(pair.endcoord.lon, pair.endcoord.lat)
+            # Check if the start airport has been plotted already
+            if pair.start_code not in plotted_airports:
+                start_coord = self.m(pair.startcoord.lon, pair.startcoord.lat)
+                self.map_ax.text(start_coord[0], start_coord[1], pair.start_code, fontsize=10, ha='right', color=pair.color)
+                self.map_ax.plot(start_coord[0], start_coord[1], 'o', color=pair.color, markersize=5)
+                plotted_airports.add(pair.start_code)  # Add to plotted set
 
-            # Add labels next to the airports
-            self.map_ax.text(start_coord[0], start_coord[1], pair.start_code, fontsize=10, ha='right', color=pair.color)
-            self.map_ax.text(end_coord[0], end_coord[1], pair.end_code, fontsize=10, ha='left', color=pair.color)
-            self.map_ax.plot(start_coord[0], start_coord[1], 'o', color=pair.color, markersize=5)  
-            self.map_ax.plot(end_coord[0], end_coord[1], 'o', color=pair.color, markersize=5) 
+            # Check if the end airport has been plotted already
+            if pair.end_code not in plotted_airports:
+                end_coord = self.m(pair.endcoord.lon, pair.endcoord.lat)
+                self.map_ax.text(end_coord[0], end_coord[1], pair.end_code, fontsize=10, ha='left', color=pair.color)
+                self.map_ax.plot(end_coord[0], end_coord[1], 'o', color=pair.color, markersize=5)
+                plotted_airports.add(pair.end_code)  # Add to plotted set
 
-        #Add the airport labels for the center of the distance rings
-        for ring in parsed_rings: 
-            start_coord = self.m(ring.startcoord.lon, ring.startcoord.lat)
-            self.map_ax.text(start_coord[0], start_coord[1], ring.start_code, fontsize=10, ha='right', color=ring.color)
-            self.map_ax.plot(start_coord[0], start_coord[1], 'o', color=ring.color, markersize=5)  
-
+        # Plot airports from parsed_rings
+        for ring in parsed_rings:
+            # Check if the ring's starting airport has been plotted already
+            if ring.start_code not in plotted_airports:
+                start_coord = self.m(ring.startcoord.lon, ring.startcoord.lat)
+                self.map_ax.text(start_coord[0], start_coord[1], ring.start_code, fontsize=10, ha='right', color=ring.color)
+                self.map_ax.plot(start_coord[0], start_coord[1], 'o', color=ring.color, markersize=5)
+                plotted_airports.add(ring.start_code)  # Add to plotted set
+        
     def plot_cities(self):
         """
         Plots markers and names of important world cities on the Basemap instance (self.m).
