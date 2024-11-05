@@ -1,4 +1,7 @@
 import re 
+import itertools
+from math import radians, sin, cos, sqrt, atan2
+
 #Import airportsdata to get the lat and long coordinates of each airport based on its ICAO/IATA code
 import airportsdata
 
@@ -28,6 +31,55 @@ class AirportInputParser:
             return Coordinate(airport['lat'], airport['lon'])
         else:
             return None
+    
+    def haversine_distance(self, coord1, coord2):
+        # Calculate great-circle distance using the Haversine formula
+        R = 6371.0  # Radius of the Earth in km
+        lat1, lon1 = radians(coord1.lat), radians(coord1.lon)
+        lat2, lon2 = radians(coord2.lat), radians(coord2.lon)
+        
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        
+        a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return R * c
+    
+    def calculate_route_distance(self, route_string):
+        routes = route_string.split(',')
+        results = []
+
+        for route in routes:
+            if '-' not in route:
+                continue  # Ignore invalid tokens
+
+            # Split the route into segments, handling '/' separators
+            segments = route.split('-')
+            expanded_routes = [[]]
+
+            for segment in segments:
+                options = segment.split('/')
+                expanded_routes = [r + [opt] for r in expanded_routes for opt in options]
+
+            for expanded_route in expanded_routes:
+                total_distance = 0
+                route_str = '-'.join(expanded_route)
+
+                # Calculate the distance for the full route
+                for i in range(len(expanded_route) - 1):
+                    start = self.get_airport_info(expanded_route[i])
+                    end = self.get_airport_info(expanded_route[i + 1])
+
+                    if start and end:
+                        total_distance += self.haversine_distance(start, end)
+                    else:
+                        total_distance = None
+                        break  # If any airport info is missing, skip this route
+
+                if total_distance is not None:
+                    results.append(FlightRouteDistance(route_str, total_distance))
+
+        return results
         
      # Helper method to convert color names to RGB format (values from 0 to 1)
     def convert_color_name_to_rgb(self, color_name):

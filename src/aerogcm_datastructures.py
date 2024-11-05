@@ -14,6 +14,7 @@ class AirportPair:
         self.linestyle = linestyle
         self.color = color
 
+#Object to represent a distance ring
 class DistanceRing:
     def __init__(self,start_code,startcoord , distance, linestyle='line', color=(19.6/100, 64.3/100,80.8/100,1)):
         self.start_code = start_code
@@ -21,4 +22,11 @@ class DistanceRing:
         self.linestyle = linestyle
         self.color = color
         self.distance = distance
+
+#Object to represent a flight route distance
+class FlightRouteDistance:
+    def __init__(self, route, distance):
+        self.route = route
+        self.distancekm = distance
+        self.distancenm = distance * 0.539957
 

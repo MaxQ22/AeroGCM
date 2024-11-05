@@ -9,8 +9,14 @@ from kivy.uix.switch import Switch
 from kivy_garden.matplotlib import FigureCanvasKivyAgg
 from kivy.core.window import Window
 from kivy.uix.accordion import Accordion, AccordionItem
+from kivy.uix.gridlayout import GridLayout
+
+#Import numpy for some general maths vector handling
 import numpy as np
+
+#Import geodesic, to calcualte some map metrics
 from geopy.distance import geodesic
+
 
 # Import Matplotlib to draw the map
 import matplotlib.pyplot as plt
@@ -151,6 +157,24 @@ class MainLayout(BoxLayout):
         scroll_view.add_widget(self.icao_input)
         right_layout.add_widget(scroll_view)
 
+        #Table to display the flight route lengths
+         # Create a ScrollView to make the table scrollable
+        self.distance_table_scroll_view = ScrollView()
+
+        # Create a GridLayout with two columns
+        self.flight_route_table_layout = GridLayout(cols=2, size_hint_y=None)
+        self.flight_route_table_layout.bind(minimum_height=self.flight_route_table_layout.setter('height'))
+
+        # Add headers to the table
+        self.flight_route_table_layout.add_widget(Label(text="Flight Route", size_hint_y=None, height=40, bold=True))
+        self.flight_route_table_layout.add_widget(Label(text="Distance", size_hint_y=None, height=40, bold=True))
+     
+        # Add the table layout to the scroll view
+        self.distance_table_scroll_view.add_widget(self.flight_route_table_layout)
+
+        #Add the table to the main layout:
+        right_layout.add_widget(self.distance_table_scroll_view)        
+        
         # Button to plot the great circles
         self.map_button = Button(
             text="Map Routes",
@@ -422,6 +446,23 @@ class MainLayout(BoxLayout):
                 end_idx = split_indices[i + 1]
                 self.m.plot(x[start_idx:end_idx], y[start_idx:end_idx], linewidth=2, color=pair.color)
 
+     # Function to update the flight route distance table with new data
+    def update_flight_route_table(self, flight_data_list):
+        """
+        Updates the flight route table with the current routes and corresponding distances
+        """
+        # Clear existing data rows (keeping the headers)
+        self.flight_route_table_layout.clear_widgets()
+        
+        # Re-add headers
+        self.flight_route_table_layout.add_widget(Label(text="Flight Route", size_hint_y=None, height=40, bold=True))
+        self.flight_route_table_layout.add_widget(Label(text="Distance", size_hint_y=None, height=40, bold=True))
+
+        # Populate the table with the new flight data
+        for flight in flight_data_list:
+            self.flight_route_table_layout.add_widget(Label(text=flight.route, size_hint_y=None, height=30))
+            self.flight_route_table_layout.add_widget(Label(text=f"{flight.distancekm:.2f} km", size_hint_y=None, height=30))
+    
     def update_map(self, instance):
         """
         Updates the map by drawing great circles based on the parsed ICAO/IATA pairs
@@ -431,6 +472,9 @@ class MainLayout(BoxLayout):
         input_text = self.icao_input.text.strip()
         parsed_pairs, parsed_rings = self.parser.parseInput(input_text)
 
+        #If the Update Map Button was pressed, also update the Flight Route Distance Table
+        self.update_flight_route_table(self.parser.calculate_route_distance(input_text))
+        
         # If no valid pairs, skip updating
         if not (parsed_pairs or parsed_rings):
             return
