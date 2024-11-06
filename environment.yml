@@ -3,15 +3,16 @@ channels:
   - defaults
   - conda-forge  # Required for some libraries like kivy and cartopy
 dependencies:
-  - python
-  - pip
-  - kivy
+  - python=3.11.10 
+  - pip=24.2
+  - kivy=2.3.0
+  #Most dependencies are installed via pip. This makes a smaller executable binary archive
   - pip:
-      - kivy-garden  # Required for garden-based widgets like the matplotlib integration
-      - kivy-garden.matplotlib
-      - airportsdata
-      - matplotlib
-      - cartopy
-      - basemap
-      - numpy
-      - geopy
+      - kivy-garden==0.1.5  # Required for garden-based widgets like the matplotlib integration
+      - kivy-garden.matplotlib==0.1.1.dev0
+      - airportsdata==20241001
+      - matplotlib==3.8.4
+      - cartopy==0.24.1
+      - basemap==1.4.1
+      - numpy==1.26.4
+      - geopy==2.4.1
