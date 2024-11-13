@@ -1,11 +1,12 @@
-name: aerogcm  # Change the environment name as needed
+name: aerogcm
 channels:
   - defaults
   - conda-forge  # Required for some libraries like kivy and cartopy
 dependencies:
-  - python=3.11.10 
+  - python=3.11.10
   - pip=24.2
   - kivy=2.3.0
+  - pyinstaller=6.9.0
   #Most dependencies are installed via pip. This makes a smaller executable binary archive
   - pip:
       - kivy-garden==0.1.5  # Required for garden-based widgets like the matplotlib integration

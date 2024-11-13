@@ -8,6 +8,7 @@ Aero GCM is a Python-based application built using the Kivy framework. This prog
 - [Program Usage](#program-usage)
 - [Requirements](#requirements)
 - [Running the Repository](#running-the-repository)
+- [Building the Repository](#Building-the-Repository)
 - [License](#license)
 
 
@@ -95,6 +96,12 @@ to run the AeroGCM program, use the command
 ```bash
 python ./src/AeroGCM.py
 ``` 
+## Building the Repository
+This repository can be build into an executable, using the PyInstaller tool. If the conda environment is created from the .yml file, pyinstaller will be automatically installed. To build and pack the repository into an executable file, run the following command:
+```bash
+pyinstaller AeroGCM.spec
+``` 
+On Windows, Linux and MACOs platforms, this will generate a stand alone executable of this repository in the folder /dist.
 ## License
 The code within this repository is released under the terms of the GPL-3.0 license.
 
