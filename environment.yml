@@ -6,7 +6,7 @@ dependencies:
   - python=3.11.10
   - pip=24.2
   - kivy=2.3.0
-  - pyinstaller=5.3.12
+  - pyinstaller=5.13.2
   #Most dependencies are installed via pip. This makes a smaller executable binary archive
   - pip:
       - kivy-garden==0.1.5  # Required for garden-based widgets like the matplotlib integration
