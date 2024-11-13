@@ -10,11 +10,11 @@ datas += collect_data_files('airportsdata')
 
 block_cipher = None
 
-a = Analysis(['src\\AeroGCM.py'],
+a = Analysis(['src/AeroGCM.py'],
              pathex=[''],
              binaries=[],
              datas=datas,
-             hiddenimports=['mpl_toolkits.basemap_data.epsg'],
+             hiddenimports=['mpl_toolkits.basemap_data.epsg', 'PIL._tkinter_finder'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
@@ -37,5 +37,5 @@ exe = EXE(pyz,
           upx=True,
           upx_exclude=[],
           runtime_tmpdir=None,
-          console=False  #As this is a GUI app, do not show the console
+          console=False #As this is a GUI app, do not show the console
            )
