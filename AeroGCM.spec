@@ -7,6 +7,7 @@ import os
 #Collect the data from the basemap and airportsdata package
 datas = collect_data_files('mpl_toolkits')
 datas += collect_data_files('airportsdata')
+datas += [('./LICENSE', '.')]
 
 block_cipher = None
 
