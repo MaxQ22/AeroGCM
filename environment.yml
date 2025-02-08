@@ -11,6 +11,7 @@ dependencies:
   - pip:
       - kivy-garden==0.1.5  # Required for garden-based widgets like the matplotlib integration
       - kivy-garden.matplotlib==0.1.1.dev0
+      - kivy-garden.filebrowser==1.1.2
       - airportsdata==20241001
       - matplotlib==3.8.4
       - cartopy==0.24.1

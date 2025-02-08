@@ -1,3 +1,6 @@
+#Some general imports
+import os
+
 # Import the Kivy framework for the App
 from kivy.app import App
 from kivy.uix.button import Button
@@ -10,6 +13,9 @@ from kivy_garden.matplotlib import FigureCanvasKivyAgg
 from kivy.core.window import Window
 from kivy.uix.accordion import Accordion, AccordionItem
 from kivy.uix.gridlayout import GridLayout
+from kivy_garden.filebrowser import FileBrowser
+from kivy.uix.filechooser import FileChooserIconView
+from kivy.uix.popup import Popup
 
 #Import numpy for some general maths vector handling
 import numpy as np
@@ -36,6 +42,9 @@ from aerogcm_datastructures import *
 # Import the input parser that parses the inputs into the dataset for plotting
 from aerogcm_input_parser import AirportInputParser
 
+#Import the License Info Info
+from license_info import LicenseInfo
+
 # Set the default window size
 Window.size = (1200, 800)
 
@@ -47,6 +56,9 @@ class MainLayout(BoxLayout):
 
         # Initialize the Input Parser
         self.parser = AirportInputParser()
+
+        #Initialize the License Info
+        self.license_info = LicenseInfo()
 
         # Left side: Settings Menu using Accordion
         settings_layout = BoxLayout(orientation='vertical', size_hint=(0.2, 1), padding=10, spacing=10)
@@ -83,6 +95,37 @@ class MainLayout(BoxLayout):
 
         # Create File section
         file_item = AccordionItem(title='File')
+
+        # Save Button
+        self.save_button = Button(
+            text="Save",
+            size_hint=(1,None),
+            height=50,
+            background_color = (19.6/100, 64.3/100,80.8/100,1),
+            color=(1, 1, 1, 1),
+            bold=True)
+        self.save_button.bind(on_press=self.save_icao_input_content)
+
+        # Open Button
+        self.open_button = Button(
+            text="Open",
+            size_hint=(1,None),
+            height=50,
+            background_color = (19.6/100, 64.3/100,80.8/100,1),
+            color=(1, 1, 1, 1),
+            bold=True)
+        self.open_button.bind(on_press=self.open_icao_input_content)
+                
+        # License Info Button
+        self.license_info_button = Button(
+            text="License Info",
+            size_hint=(1,None),
+            height=50,
+            background_color = (19.6/100, 64.3/100,80.8/100,1),
+            color=(1, 1, 1, 1),
+            bold=True)
+        self.license_info_button.bind(on_press=self.show_license_info)
+           
         # Exit Button
         self.exit_button = Button(
             text="Exit",
@@ -92,7 +135,16 @@ class MainLayout(BoxLayout):
             color=(1, 1, 1, 1),
             bold=True)
         self.exit_button.bind(on_press=self.exit)
-        file_item.add_widget(self.exit_button)
+        
+        # Create a BoxLayout to stack the buttons vertically
+        file_layout = BoxLayout(orientation='vertical')
+        file_layout.add_widget(self.save_button)
+        file_layout.add_widget(self.open_button)
+        file_layout.add_widget(self.license_info_button)
+        file_layout.add_widget(self.exit_button)
+        
+        # Add the button layout to the file item
+        file_item.add_widget(file_layout)
 
         #Add all items to the accordion
         settings_accordion.add_widget(file_item)
@@ -200,6 +252,76 @@ class MainLayout(BoxLayout):
         Function to close the Kivy application.
         """
         App.get_running_app().stop()  # Stop the app
+    
+    def show_license_info(self, *args):
+        self.license_info.open()
+
+    def save_icao_input_content(self, *args):
+        # Show a file dialog to select the file path
+        file_chooser = FileChooserIconView()
+        file_chooser.path = os.getcwd()
+        file_chooser.filters = [lambda folder, filename: filename.endswith('.aerogcm')]
+        file_chooser.bind(selection=lambda instance, selection: self.save_file(selection))
+
+        # Create a BoxLayout to hold the filename input and save button
+        filename_layout = BoxLayout(orientation='horizontal', size_hint=(1, None), height=50)
+
+        # Filename TextInput
+        self.filename_input = TextInput(hint_text='Enter filename', multiline=False)
+        filename_layout.add_widget(self.filename_input)
+
+        # Save Button
+        save_button = Button(text='Save', size_hint=(None, None), size=(100, 50))
+        save_button.bind(on_press=lambda instance: self.save_file([os.path.join(file_chooser.path, self.filename_input.text + '.aerogcm')]))
+        filename_layout.add_widget(save_button)
+
+        # Create a popup and add the file chooser and filename layout to it
+        self.file_popup = Popup(title='Save AeroGCM File', content=BoxLayout(orientation='vertical', spacing=10, padding=10), size_hint=(0.9, 0.9))
+        self.file_popup.content.add_widget(file_chooser)
+        self.file_popup.content.add_widget(filename_layout)
+
+        # Open the file chooser popup
+        self.file_popup.open()
+
+    def save_file(self, selection):
+        """
+        Save the content of the ICAO input box to the selected AeroGCM file.
+        """
+        if selection:
+            file_path = selection[0]
+            with open(file_path, "w") as file:
+                file.write(self.icao_input.text)
+
+        # Close the file chooser popup
+        self.file_popup.dismiss()
+    
+    def open_icao_input_content(self, *args):
+        # Show a file dialog to select the file path
+        file_chooser = FileChooserIconView()
+        file_chooser.path = os.getcwd()
+        file_chooser.filters = [lambda folder, filename: filename.endswith('.aerogcm')]
+        file_chooser.bind(selection=lambda instance, selection: self.load_file(selection))
+    
+        # Create a popup and add the file chooser to it
+        self.file_popup = Popup(title='Select AeroGCM File', content=file_chooser, size_hint=(0.9, 0.9))
+    
+        # Open the file chooser popup
+        self.file_popup.open()
+
+    def load_file(self, selection):
+        """
+        Load the selected AeroGCM file and set its content to the ICAO input box.
+        """
+        if selection:
+            file_path = selection[0]
+            with open(file_path, 'r') as file:
+                content = file.read()
+
+            # Set the content of the ICAO input box to the read content
+            self.icao_input.text = content
+
+        # Close the file chooser popup
+        self.file_popup.dismiss()
 
     def on_airport_label_toggle(self, instance, value):
         """
