@@ -1,5 +1,6 @@
 #Some general imports
 import os
+import sys
 
 # Import the Kivy framework for the App
 from kivy.app import App
@@ -653,6 +654,12 @@ class MainLayout(BoxLayout):
 # Main Kivy App
 class AeroGCMApp(App):
     def build(self):
+        # Determine the path to the icon file
+        if hasattr(sys, '_MEIPASS'):
+            icon_path = os.path.join(sys._MEIPASS, 'AeroGCM_Icon.png')
+        else:
+            icon_path = './AeroGCM_Icon.png'
+        self.icon = icon_path
         return MainLayout()
 
 # Run the application
