@@ -8,6 +8,7 @@ import os
 datas = collect_data_files('mpl_toolkits')
 datas += collect_data_files('airportsdata')
 datas += [('./LICENSE', '.')]
+datas += [('./AeroGCM_Icon.png', '.')]
 
 block_cipher = None
 
@@ -38,5 +39,6 @@ exe = EXE(pyz,
           upx=True,
           upx_exclude=[],
           runtime_tmpdir=None,
-          console=False #As this is a GUI app, do not show the console
+          console=False, #As this is a GUI app, do not show the console
+          icon='AeroGCM_Icon.ico'
            )
