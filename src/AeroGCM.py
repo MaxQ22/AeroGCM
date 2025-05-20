@@ -64,6 +64,9 @@ from aerogcm_input_parser import AirportInputParser
 #Import the License Info Info
 from license_info import LicenseInfo
 
+# Import the Flight Logger
+from flight_logger import FlightLogger
+
 # Set the default window size
 Window.size = (1200, 800)
 
@@ -155,12 +158,23 @@ class MainLayout(BoxLayout):
             bold=True)
         self.exit_button.bind(on_press=self.exit)
         
+        # Flight Logger Button
+        self.flight_logger_button = Button(
+            text="Flight Logger",
+            size_hint=(1, None),
+            height=50,
+            background_color=(19.6/100, 64.3/100, 80.8/100, 1),
+            color=(1, 1, 1, 1),
+            bold=True)
+        self.flight_logger_button.bind(on_press=self.open_flight_logger)
+
         # Create a BoxLayout to stack the buttons vertically
         file_layout = BoxLayout(orientation='vertical')
         file_layout.add_widget(self.save_button)
         file_layout.add_widget(self.open_button)
         file_layout.add_widget(self.license_info_button)
         file_layout.add_widget(self.exit_button)
+        file_layout.add_widget(self.flight_logger_button)
         
         # Add the button layout to the file item
         file_item.add_widget(file_layout)
@@ -667,6 +681,10 @@ class MainLayout(BoxLayout):
 
         # Refresh the map with the new great circles
         self.map_canvas.draw()
+
+    def open_flight_logger(self, *args):
+        flight_logger = FlightLogger(self)
+        flight_logger.open()
 
 
 # Main Kivy App
