@@ -43,14 +43,8 @@ class FlightLogger(Popup):
 
         # Table to display logged flights
         self.flight_table_scroll_view = ScrollView()
-        self.flight_table_layout = GridLayout(cols=9, size_hint_y=None)
+        self.flight_table_layout = GridLayout(cols=10, size_hint_y=None)
         self.flight_table_layout.bind(minimum_height=self.flight_table_layout.setter('height'))
-
-        # Add headers to the table
-        headers = ["Departure Time", "Arrival Time", "Airline", "Callsign", "Airplane Type", "Registration", "Origin", "Destination", "Remove"]
-        for header in headers:
-            self.flight_table_layout.add_widget(Label(text=header, size_hint_y=None, height=40, bold=True))
-
         self.flight_table_scroll_view.add_widget(self.flight_table_layout)
         layout.add_widget(self.flight_table_scroll_view)
 
@@ -171,22 +165,30 @@ class FlightLogger(Popup):
         self._save_to_csv_string()
         self.update_table()
 
+
     def update_table(self):
         self.flight_table_layout.clear_widgets()
 
-        headers = ["Departure Time", "Arrival Time", "Airline", "Callsign", "Airplane Type", "Registration", "Origin", "Destination", "Remove"]
+        headers = ["Departure Time", "Arrival Time", "Airline", "Callsign", "Airplane Type", "Registration", "Origin", "Destination", "Remove", "Edit"]
         for header in headers:
             self.flight_table_layout.add_widget(Label(text=header, size_hint_y=None, height=40, bold=True))
 
-        for flight in self.flights:
+        for idx, flight in enumerate(self.flights):
+            # Add all 8 fields
             for field in flight:
                 self.flight_table_layout.add_widget(Label(text=field, size_hint_y=None, height=30))
-
+            # Add Remove and Edit buttons in the same row
             remove_button = Button(text="Remove", size_hint_y=None, height=30)
             remove_button.bind(on_press=lambda instance, f=flight: self.remove_flight(f))
+            edit_button = Button(text="Edit", size_hint_y=None, height=30)
+            edit_button.bind(on_press=lambda instance, i=idx: self.edit_flight(i))
             self.flight_table_layout.add_widget(remove_button)
+            self.flight_table_layout.add_widget(edit_button)
 
         self._save_to_csv_string()
+    def edit_flight(self, flight_index):
+        edit_popup = EditFlightPopup(self, flight_index)
+        edit_popup.open()
 
     def plot_flights(self, *args):
         routes = [f"{flight[6]}-{flight[7]}" for flight in self.flights]
@@ -194,6 +196,7 @@ class FlightLogger(Popup):
         self.main_layout.update_map(None)
         self._save_to_csv_string()
         self.dismiss()
+
 
 class AddFlightPopup(Popup):
     def __init__(self, flight_logger, **kwargs):
@@ -205,8 +208,8 @@ class AddFlightPopup(Popup):
         layout = BoxLayout(orientation='vertical', spacing=10, padding=10)
 
         self.fields = {}
-        field_names = ["Departure Time", "Arrival Time", "Airline", "Callsign", "Airplane Type", "Registration", "Origin", "Destination"]
-        for field in field_names:
+        self.field_names = ["Departure Time", "Arrival Time", "Airline", "Callsign", "Airplane Type", "Registration", "Origin", "Destination"]
+        for field in self.field_names:
             field_layout = BoxLayout(size_hint_y=None, height=50)
             field_layout.add_widget(Label(text=field, size_hint_x=0.4))
             text_input = TextInput(size_hint_x=0.6)
@@ -228,7 +231,52 @@ class AddFlightPopup(Popup):
         self.content = layout
 
     def add_flight(self, *args):
-        flight = [self.fields[field].text for field in self.fields]
+        flight = [self.fields[field].text for field in self.field_names]
         self.flight_logger.flights.append(flight)
+        self.flight_logger.update_table()
+        self.dismiss()
+
+
+# New popup for editing flights
+class EditFlightPopup(Popup):
+    def __init__(self, flight_logger, flight_index, **kwargs):
+        super().__init__(**kwargs)
+        self.title = "Edit Flight"
+        self.size_hint = (0.8, 0.8)
+        self.flight_logger = flight_logger
+        self.flight_index = flight_index
+
+        layout = BoxLayout(orientation='vertical', spacing=10, padding=10)
+
+        self.fields = {}
+        self.field_names = ["Departure Time", "Arrival Time", "Airline", "Callsign", "Airplane Type", "Registration", "Origin", "Destination"]
+        flight_data = self.flight_logger.flights[self.flight_index]
+        for i, field in enumerate(self.field_names):
+            field_layout = BoxLayout(size_hint_y=None, height=50)
+            field_layout.add_widget(Label(text=field, size_hint_x=0.4))
+            text_input = TextInput(size_hint_x=0.6)
+            # Pre-fill with existing data
+            if i < len(flight_data):
+                text_input.text = flight_data[i]
+            field_layout.add_widget(text_input)
+            self.fields[field] = text_input
+            layout.add_widget(field_layout)
+
+        button_layout = BoxLayout(size_hint_y=None, height=50, spacing=10)
+
+        save_button = Button(text="Save", size_hint=(1, None), height=50)
+        save_button.bind(on_press=self.save_flight)
+        button_layout.add_widget(save_button)
+
+        cancel_button = Button(text="Cancel", size_hint=(1, None), height=50)
+        cancel_button.bind(on_press=self.dismiss)
+        button_layout.add_widget(cancel_button)
+
+        layout.add_widget(button_layout)
+        self.content = layout
+
+    def save_flight(self, *args):
+        updated_flight = [self.fields[field].text for field in self.field_names]
+        self.flight_logger.flights[self.flight_index] = updated_flight
         self.flight_logger.update_table()
         self.dismiss()
