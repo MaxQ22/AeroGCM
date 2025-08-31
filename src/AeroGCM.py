@@ -67,6 +67,9 @@ from license_info import LicenseInfo
 # Import the Flight Logger
 from flight_logger import FlightLogger
 
+# Import the City Airport Search
+from city_airport_search import CityAirportSearch  # <-- import the new module
+
 # Set the default window size
 Window.size = (1200, 800)
 
@@ -168,6 +171,16 @@ class MainLayout(BoxLayout):
             bold=True)
         self.flight_logger_button.bind(on_press=self.open_flight_logger)
 
+        # City Airport Search Button
+        self.city_airport_search_button = Button(
+            text="City Airport Search",
+            size_hint=(1, None),
+            height=50,
+            background_color=(19.6/100, 64.3/100, 80.8/100, 1),
+            color=(1, 1, 1, 1),
+            bold=True)
+        self.city_airport_search_button.bind(on_press=self.open_city_airport_search)
+
         # Create a BoxLayout to stack the buttons vertically
         file_layout = BoxLayout(orientation='vertical')
         file_layout.add_widget(self.save_button)
@@ -175,6 +188,7 @@ class MainLayout(BoxLayout):
         file_layout.add_widget(self.license_info_button)
         file_layout.add_widget(self.exit_button)
         file_layout.add_widget(self.flight_logger_button)
+        file_layout.add_widget(self.city_airport_search_button)  # <-- add new button
         
         # Add the button layout to the file item
         file_item.add_widget(file_layout)
@@ -685,6 +699,10 @@ class MainLayout(BoxLayout):
     def open_flight_logger(self, *args):
         flight_logger = FlightLogger(self)
         flight_logger.open()
+
+    def open_city_airport_search(self, *args):
+        city_search = CityAirportSearch(self)
+        city_search.open()
 
 
 # Main Kivy App
